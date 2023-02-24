@@ -4,7 +4,7 @@
 // @version      1.0.0
 // @downloadURL  https://github.com/monkheyonepiece/JvcPlayer/blob/main/jvcplayer.js
 // @updateURL    https://github.com/monkheyonepiece/JvcPlayer/blob/main/jvcplayer.js
-// @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo ou 4chan sur jeuxvideo.com
+// @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
 // @match        https://www.jeuxvideo.com/messages-prives/*
