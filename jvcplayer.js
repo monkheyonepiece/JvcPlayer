@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         JvcPlayer
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/monkheyonepiece/JvcPlayer
 // @version      1.0.1
 // @downloadURL  https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.js
 // @updateURL    https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.js
