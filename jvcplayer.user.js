@@ -10,7 +10,6 @@
 // @match        https://www.jeuxvideo.com/messages-prives/*
 // @grant        none
 // ==/UserScript==
-//Squid game
 /*
 TODO :
 -Lien Twitter qui merde TWITTER.COM N'AUTORISE PAS LA CONNEXION
