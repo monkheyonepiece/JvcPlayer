@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.0.0
+// @version      1.0.2
 // @downloadURL  https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.user.js
 // @updateURL    https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.user.js
 // @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
