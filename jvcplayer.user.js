@@ -211,7 +211,7 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
     }
     // Fonction pour remplacer les liens Vocaroo par des audio intégrés
     function replaceVocarooLinks() {
-        var links = document.querySelectorAll('a[href*="vocaroo.com/"]');
+        var links = document.querySelectorAll('a[href*="vocaroo.com/"], a[href*="voca.ro/"]');
         for (var i = 0; i < links.length; i++) {
             var link = links[i];
             var audioId = link.href.split('/').pop();
@@ -320,7 +320,7 @@ TWITTER.COM N'AUTORISE PAS LA CONNEXION
         }
 
         if(doVocaroo === true) {
-            if (document.querySelectorAll('a[href*="vocaroo.com/"]').length > 0) {
+            if (document.querySelectorAll('a[href*="vocaroo.com/"], a[href*="voca.ro/"]').length > 0) {
                 replaceVocarooLinks();
             }
         }
