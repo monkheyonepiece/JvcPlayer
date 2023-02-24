@@ -2,15 +2,15 @@
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
 // @version      1.0.1
-// @downloadURL  https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.js
-// @updateURL    https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.js
+// @downloadURL  https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.user.js
+// @updateURL    https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.user.js
 // @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
 // @match        https://www.jeuxvideo.com/messages-prives/*
 // @grant        none
 // ==/UserScript==
-
+//Squid game
 /*
 TODO :
 -Lien Twitter qui merde TWITTER.COM N'AUTORISE PAS LA CONNEXION
