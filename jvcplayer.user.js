@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.0.1
+// @version      1.0.2
 // @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
@@ -58,17 +58,26 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
                 continue; // Exclure les liens de la classe "signature-msg"
             }
             var videoId = '';
+            var timestamp = '';
             var isShort = false;
             if (link.href.indexOf('youtube.com/watch') !== -1) {
-                videoId = link.href.match(/v=([^&]+)/)[1];
+                if(link.href.indexOf('v=') !== -1) {
+                    videoId = link.href.match(/v=([^&]+)/)[1];
+                }
+                if(link.href.indexOf('t=') !== -1) {
+                    timestamp = link.href.match(/t=([^&]+)/)[1];
+                }
             } else if (link.href.indexOf('youtu.be/') !== -1) {
                 videoId = link.href.split('youtu.be/')[1];
+                if(videoId.indexOf('?') !== -1) {
+                    videoId = videoId.split('?')[0];
+                }
+                if(link.href.indexOf('t=') !== -1) {
+                    timestamp = link.href.split('t=')[1];
+                }
             } else if (link.href.indexOf('youtube.com/shorts/') !== -1) {
                 videoId = link.href.split('youtube.com/shorts/')[1];
                 isShort = true;
-            }
-            if (videoId.includes('t=')) {
-                videoId = videoId.replace(/t=/, 'start=');
             }
             var iframe = document.createElement('iframe');
             if(isShort === true) {
@@ -78,7 +87,7 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
                 iframe.width = '560';
                 iframe.height = '315';
             }
-            iframe.src = 'https://www.youtube.com/embed/' + videoId;
+            iframe.src = 'https://www.youtube.com/embed/' + videoId + '?start=' + timestamp.replace('s', '');
             iframe.setAttribute('frameborder', '0');
             iframe.setAttribute('allowfullscreen', 'true');
             link.parentNode.replaceChild(iframe, link);
