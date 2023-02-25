@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.0.0
+// @version      1.0.1
 // @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
@@ -66,6 +66,9 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
             } else if (link.href.indexOf('youtube.com/shorts/') !== -1) {
                 videoId = link.href.split('youtube.com/shorts/')[1];
                 isShort = true;
+            }
+            if (videoId.includes('t=')) {
+                videoId = videoId.replace(/t=/, 'start=');
             }
             var iframe = document.createElement('iframe');
             if(isShort === true) {
