@@ -1,6 +1,6 @@
 # JvcPlayer
 Lecteur de vidéo intégré pour les forums jeuxvideo.com.
-Prend en charge : Youtube, Youtube Short, Streamable, Webmshare, Tiktok, Vocaroo et IssouTV.
+Prend en charge : Youtube, Youtube Short, Streamable, Webmshare, Twitter, Tiktok, Vocaroo et IssouTV.
 
 Ce script a entièrement été fait grâce à ChatGTP.
 
