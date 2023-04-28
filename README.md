@@ -18,4 +18,4 @@ https://github.com/monkheyonepiece/JvcPlayer/raw/main/jvcplayer.user.js
 Quand vous installerez le script, tout les liens seront intégré par defaut, mais vous pouvez changer cela si certains vous gênent.
 Dans le code du script, il suffit juste de remplacer la valeur `true` de la variable correspondant aux liens que vous ne voulez plus intégrer par `false`, puis de faire un CTRL+S pour sauvegarder.
 
-![(https://github.com/monkheyonepiece/JvcPlayer/blob/main/choixlien.png?raw=true)](https://github.com/monkheyonepiece/JvcPlayer/blob/main/choixliens.png?raw=true)
+![(https://github.com/monkheyonepiece/JvcPlayer/blob/main/choixliens.png)](https://github.com/monkheyonepiece/JvcPlayer/blob/main/choixliens.png)
