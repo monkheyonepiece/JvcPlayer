@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.0.2
-// @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
+// @version      1.1.0
+// @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Twitter, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
 // @match        https://www.jeuxvideo.com/messages-prives/*
@@ -10,7 +10,6 @@
 // ==/UserScript==
 /*
 TODO :
--Lien Twitter qui merde TWITTER.COM N'AUTORISE PAS LA CONNEXION
 -Lien 4chan qui affiche FORBIDDEN 403
 -Faire en sorte que l'utilisateur puisse choisir quels liens il veut intégrer ou non (faire mieux qu'actuellement avec une interface)
 /PEUT-ETRE\ Laisser afficher le lien de base (problème avec TopicLive) iframeContainer.appendChild(iframe);
@@ -34,7 +33,7 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
     var doWebmshare = true;
 
     //Remplacer true par false pour ne plus intégrer les lien Twitter
-    //var doTwitter = PAS ENCORE PRÊT;
+    var doTwitter = true;
 
     //Remplacer true par false pour ne plus intégrer les lien Tiktok
     var doTiktok = true;
@@ -149,34 +148,44 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
     }
 
     // Fonction pour remplacer les liens Twitter par des vidéos intégrées
-    // TWITTER.COM N'AUTORISE PAS LA CONNEXION
-   /* function replaceTwitterLinks() {
-        var links = document.querySelectorAll('a[href*="twitter.com/"]');
+    function replaceTwitterLinks() {
+        var script = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+        if (script) {
+            script.remove();
+        }
+        var links = document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"]');
         for (var i = 0; i < links.length; i++) {
             var link = links[i];
-            if (link.closest('.signature-msg') !== null) {
-                continue; // Exclure les liens de la classe "signature-msg"
+            if ((link.closest('.signature-msg') !== null) || (link.closest('.twitter-tweet') !== null)) {
+                continue; // Exclure les liens de la classe "signature-msg" et "twitter-tweet"
             }
-            var tweetUrl = link.href;
-            var tweetId = tweetUrl.split('twitter.com/')[1];
-            var iframeContainer = document.createElement('div');
-            iframeContainer.style.width = '500px';
-            iframeContainer.style.height = '600px';
-            iframeContainer.style.position = 'relative';
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://twitter.com/' + tweetId;
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.position = 'absolute';
-            iframeContainer.appendChild(iframe);
-            link.parentNode.replaceChild(iframeContainer, link);
+            /*
+            isTweetExist(link.href).then(result => {
+                if(result){
+                    var tweetHtml = `<blockquote class="twitter-tweet"><a href="${link}"></a></blockquote>`;
+                    var tweetElement = document.createElement('blockquote');
+                    tweetElement.setAttribute('class', 'twitter-tweet');
+                    tweetElement.innerHTML = tweetHtml;
+                    link.parentNode.replaceChild(tweetElement, link);
+                }else {
+                    // Le tweet n'existe pas
+                    console.log("222Tweet not found");
+                }
+            })*/
+
+            var tweetHtml = `<blockquote class="twitter-tweet"><a href="${link}"></a></blockquote>`;
+            var tweetElement = document.createElement('blockquote');
+            tweetElement.setAttribute('class', 'twitter-tweet');
+            tweetElement.innerHTML = tweetHtml;
+            link.parentNode.replaceChild(tweetElement, link);
+
+            if (!script) {
+                const twitterScript = document.createElement('script');
+                twitterScript.setAttribute('src', 'https://platform.twitter.com/widgets.js');
+                document.body.appendChild(twitterScript);
+            }
         }
     }
-*/
 
     // Fonction pour remplacer les liens Tiktok par des vidéos intégrées
     function replaceTikTokLinks() {
@@ -317,14 +326,13 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
                 replaceWebmshareLinks();
             }
         }
-/*
-TWITTER.COM N'AUTORISE PAS LA CONNEXION
+
         if(doTwitter === true) {
-            if (document.querySelectorAll('a[href*="twitter.com/"]').length > 0) {
+            if (document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"]').length > 0) {
                 replaceTwitterLinks();
             }
         }
-*/
+        
         if(doTiktok === true) {
             if (document.querySelectorAll('a[href*="tiktok.com/"]').length > 0) {
                 replaceTikTokLinks();
