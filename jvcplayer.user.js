@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.1.0
+// @version      1.1.1
 // @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Twitter, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
@@ -153,9 +153,12 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
         if (script) {
             script.remove();
         }
-        var links = document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"]');
+        var links = document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"], a[href*="x.com/"][href*="/status/"]');
         for (var i = 0; i < links.length; i++) {
             var link = links[i];
+            if (link.href.includes("x.com")) {
+            link.href = link.href.replace("x.com", "twitter.com");
+            }
             if ((link.closest('.signature-msg') !== null) || (link.closest('.twitter-tweet') !== null)) {
                 continue; // Exclure les liens de la classe "signature-msg" et "twitter-tweet"
             }
@@ -328,7 +331,7 @@ UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POU
         }
 
         if(doTwitter === true) {
-            if (document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"]').length > 0) {
+            if (document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"], a[href*="x.com/"][href*="/status/"]').length > 0) {
                 replaceTwitterLinks();
             }
         }
