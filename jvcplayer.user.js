@@ -1,378 +1,279 @@
 // ==UserScript==
 // @name         JvcPlayer
 // @namespace    https://github.com/monkheyonepiece/JvcPlayer
-// @version      1.1.1
-// @description  Intégration de vidéos YouTube et Youtube Short, Streamable, WebmShare, Twitter, Tiktok, Vocaroo, IssouTV ou 4chan sur jeuxvideo.com
+// @version      2.0.0
+// @description  Intégration de vidéos YouTube, Streamable, WebmShare, Twitter/X, Tiktok, Vocaroo, IssouTV sur jeuxvideo.com
 // @author       monkheyonepiece
 // @match        https://www.jeuxvideo.com/forums/*
 // @match        https://www.jeuxvideo.com/messages-prives/*
 // @grant        none
 // ==/UserScript==
-/*
-TODO :
--Lien 4chan qui affiche FORBIDDEN 403
--Faire en sorte que l'utilisateur puisse choisir quels liens il veut intégrer ou non (faire mieux qu'actuellement avec une interface)
-/PEUT-ETRE\ Laisser afficher le lien de base (problème avec TopicLive) iframeContainer.appendChild(iframe);
-*/
 
-(function() {
+(function () {
     'use strict';
 
-    /*
-POUR CHOISIR QUELS LIENS VOUS VOULEZ INTEGRER OU NON.
-SI LE SITE QUI VOUS INTERESSE EST GRISÉ, C'EST QU'IL N'EST PAS ENCORE PRÊT.
-UNE FOIS LA MODIFICATION FINIE, FAITES JUSTE CTRL+S POUR SAUVEGARDER ET VOUS POUVEZ ENSUITE FERMER LA PAGE.
-*/
-    //Remplacer true par false pour ne plus intégrer les lien Youtube et Youtube Short
-    var doYoutube = true;
+    // =========================================================
+    //  CONFIG — passer à false pour désactiver un site
+    // =========================================================
+    const CONFIG = {
+        youtube:    true,
+        streamable: true,
+        webmshare:  true,
+        twitter:    true,
+        tiktok:     true,
+        vocaroo:    true,
+        issoutv:    true,
+    };
 
-    //Remplacer true par false pour ne plus intégrer les lien Streamable
-    var doStreamable = true;
+    // =========================================================
+    //  HELPERS
+    // =========================================================
 
-    //Remplacer true par false pour ne plus intégrer les lien Webmshare
-    var doWebmshare = true;
+    /** Crée un iframe avec les attributs communs */
+    function makeIframe(src, w, h, extraStyles = {}) {
+        const f = document.createElement('iframe');
+        f.src = src;
+        f.width  = w;
+        f.height = h;
+        f.setAttribute('frameborder', '0');
+        f.setAttribute('allowfullscreen', 'true');
+        f.setAttribute('loading', 'lazy');   // chargement différé natif
+        Object.assign(f.style, extraStyles);
+        return f;
+    }
 
-    //Remplacer true par false pour ne plus intégrer les lien Twitter
-    var doTwitter = true;
+    /** Remplace link par el dans le DOM */
+    const swap = (link, el) => link.parentNode?.replaceChild(el, link);
 
-    //Remplacer true par false pour ne plus intégrer les lien Tiktok
-    var doTiktok = true;
+    /** Extrait le premier groupe capturant d'une regex sur une chaîne */
+    const match1 = (str, re) => (str.match(re) || [])[1] ?? '';
 
-    //Remplacer true par false pour ne plus intégrer les lien Vocaroo
-    var doVocaroo = true;
+    /** Vérifie si le lien est dans une signature (à exclure) */
+    const inSignature = (el) => el.closest('.signature-msg') !== null;
 
-    //Remplacer true par false pour ne plus intégrer les lien IssouTV
-    var doIssoutv = true;
+    // =========================================================
+    //  HANDLERS PAR SITE
+    // =========================================================
 
-    //Remplacer true par false pour ne plus intégrer les lien 4chan
-    //var do4chan = PAS ENCORE PRÊT;
+    const HANDLERS = {
 
+        // ----- YouTube & Shorts ------------------------------------------
+        youtube: {
+            selector: 'a[href*="youtube.com/watch"], a[href*="youtu.be/"], a[href*="youtube.com/shorts/"]',
+            process(link) {
+                if (inSignature(link)) return;
+                const href = link.href;
+                let videoId = '', timestamp = '', isShort = false;
 
-    // Fonction pour remplacer les liens YouTube et Youtube Short par des vidéos intégrées
-    function replaceYoutubeLinks() {
-        var links = document.querySelectorAll('a[href*="youtube.com/watch"], a[href*="youtu.be/"], a[href*="youtube.com/shorts/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            if (link.closest('.signature-msg') !== null) {
-                continue; // Exclure les liens de la classe "signature-msg"
-            }
-            var videoId = '';
-            var timestamp = '';
-            var isShort = false;
-            if (link.href.indexOf('youtube.com/watch') !== -1) {
-                if(link.href.indexOf('v=') !== -1) {
-                    videoId = link.href.match(/v=([^&]+)/)[1];
+                if (href.includes('youtube.com/shorts/')) {
+                    videoId = href.split('youtube.com/shorts/')[1].split('?')[0];
+                    isShort = true;
+                } else if (href.includes('youtu.be/')) {
+                    videoId   = href.split('youtu.be/')[1].split('?')[0];
+                    timestamp = match1(href, /[?&t=]t=([^&#]+)/);
+                } else {
+                    videoId  = match1(href, /[?&]v=([^&]+)/);
+                    timestamp = match1(href, /[?&]t=([^&]+)/);
                 }
-                if(link.href.indexOf('t=') !== -1) {
-                    timestamp = link.href.match(/t=([^&]+)/)[1];
+                if (!videoId) return;
+
+                const src = `https://www.youtube.com/embed/${videoId}?start=${timestamp.replace('s', '')}`;
+                const iframe = isShort
+                    ? makeIframe(src, '330', '590')
+                    : makeIframe(src, '560', '315');
+                swap(link, iframe);
+            },
+        },
+
+        // ----- Streamable ------------------------------------------------
+        // L'API oEmbed retourne width/height sans auth → on choisit
+        // portrait (330×590) ou paysage (560×315) selon les dimensions réelles.
+        streamable: {
+            selector: 'a[href*="streamable.com/"]',
+            process(link) {
+                if (inSignature(link)) return;
+                const videoId = link.href.split('/').pop();
+                if (!videoId) return;
+
+                // Placeholder pendant le fetch
+                const placeholder = document.createElement('div');
+                Object.assign(placeholder.style, { width: '560px', height: '315px', background: '#111' });
+                swap(link, placeholder);
+
+                fetch(`https://api.streamable.com/oembed.json?url=https://streamable.com/${videoId}`)
+                    .then(r => r.json())
+                    .then(({ width: vw, height: vh }) => {
+                        const portrait = vh > vw;
+                        const w = portrait ? '330' : '560';
+                        const h = portrait ? '590' : '315';
+                        const iframe = makeIframe(`https://streamable.com/e/${videoId}`, w, h);
+                        placeholder.replaceWith(iframe);
+                    })
+                    .catch(() => {
+                        // Fallback paysage si l'API est inaccessible
+                        placeholder.replaceWith(
+                            makeIframe(`https://streamable.com/e/${videoId}`, '560', '315')
+                        );
+                    });
+            },
+        },
+
+        // ----- Webmshare -------------------------------------------------
+        // webmshare.com bloque les iframes (X-Frame-Options), on utilise
+        // donc <video> natif avec l'URL directe s1.webmshare.com/{id}.webm
+        webmshare: {
+            selector: 'a[href*="webmshare.com/"]',
+            process(link) {
+                if (inSignature(link)) return;
+                const videoId = link.href.split('/').pop();
+                if (!videoId) return;
+
+                const video = document.createElement('video');
+                video.src = `https://s1.webmshare.com/${videoId}.webm`;
+                video.controls = true;
+                video.preload = 'metadata'; // charge uniquement les métadonnées, pas la vidéo entière
+                Object.assign(video.style, { maxWidth: '560px', display: 'block' });
+
+                video.addEventListener('loadedmetadata', () => {
+                    const { videoWidth: vw, videoHeight: vh } = video;
+                    if (!vw || !vh) return;
+                    const portrait = vh > vw;
+                    video.style.width  = portrait ? '330px' : '560px';
+                    video.style.height = portrait ? '590px' : '315px';
+                }, { once: true });
+
+                swap(link, video);
+            },
+        },
+
+        // ----- Twitter / X -----------------------------------------------
+        twitter: {
+            selector: 'a[href*="twitter.com/"][href*="/status/"], a[href*="x.com/"][href*="/status/"]',
+            _scriptInjected: false,
+            process(link) {
+                if (inSignature(link) || link.closest('.twitter-tweet')) return;
+
+                // Normalise x.com → twitter.com
+                const href = link.href.replace('x.com', 'twitter.com');
+
+                const blockquote = document.createElement('blockquote');
+                blockquote.className = 'twitter-tweet';
+                const tweetAnchor = document.createElement('a');
+                tweetAnchor.setAttribute('href', href);
+                blockquote.appendChild(tweetAnchor);
+                swap(link, blockquote);
+
+                if (!this._scriptInjected) {
+                    this._scriptInjected = true;
+                    // Retire l'ancien script s'il existe (évite les doublons)
+                    document.querySelector('script[src*="platform.twitter.com/widgets.js"]')?.remove();
+                    const s = document.createElement('script');
+                    s.src = 'https://platform.twitter.com/widgets.js';
+                    s.async = true;
+                    document.body.appendChild(s);
                 }
-            } else if (link.href.indexOf('youtu.be/') !== -1) {
-                videoId = link.href.split('youtu.be/')[1];
-                if(videoId.indexOf('?') !== -1) {
-                    videoId = videoId.split('?')[0];
-                }
-                if(link.href.indexOf('t=') !== -1) {
-                    timestamp = link.href.split('t=')[1];
-                }
-            } else if (link.href.indexOf('youtube.com/shorts/') !== -1) {
-                videoId = link.href.split('youtube.com/shorts/')[1];
-                isShort = true;
-            }
-            var iframe = document.createElement('iframe');
-            if(isShort === true) {
-                iframe.width = '330';
-                iframe.height = '590';
-            } else {
-                iframe.width = '560';
-                iframe.height = '315';
-            }
-            iframe.src = 'https://www.youtube.com/embed/' + videoId + '?start=' + timestamp.replace('s', '');
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            link.parentNode.replaceChild(iframe, link);
+            },
+        },
+
+        // ----- TikTok ----------------------------------------------------
+        tiktok: {
+            selector: 'a[href*="tiktok.com/"]',
+            process(link) {
+                if (inSignature(link)) return;
+                // Liens courts vm.tiktok.com non gérés
+                if (link.href.includes('vm.tiktok.com/')) return;
+
+                const tiktokMatch = link.href.match(/\/video\/(\d+)/);
+                const videoId = tiktokMatch ? tiktokMatch[1] : link.href.split('/').pop().split('?')[0];
+                if (!videoId) return;
+
+                const container = document.createElement('div');
+                Object.assign(container.style, { width: '100%', display: 'flex' });
+                container.appendChild(
+                    makeIframe(`https://www.tiktok.com/embed/v2/${videoId}?lang=fr-FR`, '100%', 'auto', {
+                        maxWidth:  '330px',
+                        minHeight: '785px',
+                        border:    'none',
+                    })
+                );
+                swap(link, container);
+            },
+        },
+
+        // ----- Vocaroo ---------------------------------------------------
+        vocaroo: {
+            selector: 'a[href*="vocaroo.com/"], a[href*="voca.ro/"]',
+            process(link) {
+                const audioId = link.href.split('/').pop();
+                if (!audioId) return;
+                const wrapper = document.createElement('div');
+                wrapper.appendChild(makeIframe(`https://vocaroo.com/embed/${audioId}`, '300', '60'));
+                swap(link, wrapper);
+            },
+        },
+
+        // ----- IssouTV ---------------------------------------------------
+        // Utilise <video> natif au lieu d'un iframe : le navigateur connaît
+        // les dimensions réelles une fois les métadonnées chargées, ce qui
+        // permet de redimensionner le conteneur automatiquement.
+        issoutv: {
+            selector: 'a[href*="issoutv.com/videos/"]',
+            process(link) {
+                if (inSignature(link)) return;
+                const videoId = link.href.split('/').pop();
+                if (!videoId) return;
+
+                const video = document.createElement('video');
+                video.src = `https://issoutv.com/storage/videos/${videoId}.webm`;
+                video.controls = true;
+                video.preload = 'metadata'; // charge uniquement les métadonnées, pas la vidéo entière
+                Object.assign(video.style, { maxWidth: '560px', display: 'block' });
+
+                // Redimensionnement dès que le navigateur connaît w/h de la vidéo
+                video.addEventListener('loadedmetadata', () => {
+                    const { videoWidth: vw, videoHeight: vh } = video;
+                    if (!vw || !vh) return;
+                    const portrait = vh > vw;
+                    video.style.width  = portrait ? '330px' : '560px';
+                    video.style.height = portrait ? '590px' : '315px';
+                }, { once: true });
+
+                swap(link, video);
+            },
+        },
+    };
+
+    // =========================================================
+    //  MOTEUR PRINCIPAL
+    // =========================================================
+
+    /** Traite uniquement les liens pas encore convertis (attribut data-jvcp-done) */
+    function processLinks(handler) {
+        document.querySelectorAll(handler.selector).forEach(link => {
+            if (link.dataset.jvcpDone) return;
+            link.dataset.jvcpDone = '1';   // marque avant swap pour éviter le double traitement
+            handler.process(link);
+        });
+    }
+
+    function start() {
+        for (const [key, handler] of Object.entries(HANDLERS)) {
+            if (CONFIG[key]) processLinks(handler);
         }
     }
 
-    // Fonction pour remplacer les liens Streamable par des vidéos intégrées
-    function replaceStreamableLinks() {
-        var links = document.querySelectorAll('a[href*="streamable.com/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            if (link.closest('.signature-msg') !== null) {
-                continue; // Exclure les liens de la classe "signature-msg"
-            }
-            var videoId = link.href.split('/').pop();
-            var iframeContainer = document.createElement('div');
-            iframeContainer.style.width = '560px';
-            iframeContainer.style.height = '315px';
-            iframeContainer.style.position = 'relative';
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://streamable.com/e/' + videoId;
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.position = 'absolute';
-            iframeContainer.appendChild(iframe);
-            link.parentNode.replaceChild(iframeContainer, link);
-        }
-    }
+    // Premier passage au chargement
+    start();
 
-    // Fonction pour remplacer les liens Webmshare par des vidéos intégrées
-    function replaceWebmshareLinks() {
-        var links = document.querySelectorAll('a[href*="webmshare.com/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            if (link.closest('.signature-msg') !== null) {
-                continue; // Exclure les liens de la classe "signature-msg"
-            }
-            var videoId = link.href.split('/').pop();
-            var iframeContainer = document.createElement('div');
-            iframeContainer.style.width = '560px';
-            iframeContainer.style.height = '315px';
-            iframeContainer.style.position = 'relative';
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://webmshare.com/play/' + videoId;
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.position = 'absolute';
-            iframeContainer.appendChild(iframe);
-            link.parentNode.replaceChild(iframeContainer, link);
-        }
-    }
-
-    // Fonction pour remplacer les liens Twitter par des vidéos intégrées
-    function replaceTwitterLinks() {
-        var script = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
-        if (script) {
-            script.remove();
-        }
-        var links = document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"], a[href*="x.com/"][href*="/status/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            if (link.href.includes("x.com")) {
-            link.href = link.href.replace("x.com", "twitter.com");
-            }
-            if ((link.closest('.signature-msg') !== null) || (link.closest('.twitter-tweet') !== null)) {
-                continue; // Exclure les liens de la classe "signature-msg" et "twitter-tweet"
-            }
-            /*
-            isTweetExist(link.href).then(result => {
-                if(result){
-                    var tweetHtml = `<blockquote class="twitter-tweet"><a href="${link}"></a></blockquote>`;
-                    var tweetElement = document.createElement('blockquote');
-                    tweetElement.setAttribute('class', 'twitter-tweet');
-                    tweetElement.innerHTML = tweetHtml;
-                    link.parentNode.replaceChild(tweetElement, link);
-                }else {
-                    // Le tweet n'existe pas
-                    console.log("222Tweet not found");
-                }
-            })*/
-
-            var tweetHtml = `<blockquote class="twitter-tweet"><a href="${link}"></a></blockquote>`;
-            var tweetElement = document.createElement('blockquote');
-            tweetElement.setAttribute('class', 'twitter-tweet');
-            tweetElement.innerHTML = tweetHtml;
-            link.parentNode.replaceChild(tweetElement, link);
-
-            if (!script) {
-                const twitterScript = document.createElement('script');
-                twitterScript.setAttribute('src', 'https://platform.twitter.com/widgets.js');
-                document.body.appendChild(twitterScript);
-            }
-        }
-    }
-
-    // Fonction pour remplacer les liens Tiktok par des vidéos intégrées
-    function replaceTikTokLinks() {
-        var links = document.querySelectorAll('a[href*="tiktok.com/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            if (link.closest('.signature-msg') !== null) {
-                continue; // Exclure les liens de la classe "signature-msg"
-            }
-            var videoId = '';
-            if (link.href.indexOf('vm.tiktok.com/') !== -1) { continue; }
-            /*videoId = link.href.split('/')[3];
-                var iframeContainer = document.createElement('div');
-                iframeContainer.style.width = '560px';
-                iframeContainer.style.height = '315px';
-                iframeContainer.style.position = 'relative';
-                var iframe = document.createElement('iframe');
-                iframe.src = 'https://vm.tiktok.com/' + videoId;
-                iframe.width = '100%';
-                iframe.height = '100%';
-                iframe.setAttribute('frameborder', '0');
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.position = 'absolute';
-                iframeContainer.appendChild(iframe);
-                link.parentNode.replaceChild(iframeContainer, link);
-            } else {*/
-            videoId = link.href.split('/').pop();
-            var videoContainer = document.createElement('div');
-            videoContainer.style.width = '100%';
-            videoContainer.style.display = 'flex';
-            var video = document.createElement('iframe');
-            video.src = 'https://www.tiktok.com/embed/v2/' + videoId + '?lang=en-US';
-            video.style.width = '100%';
-            video.style.maxWidth = '330px';
-            video.style.height = 'auto';
-            video.style.minHeight = '785px';
-            video.style.border = 'none';
-            videoContainer.appendChild(video);
-            link.parentNode.replaceChild(videoContainer, link);
-            //}
-        }
-    }
-    // Fonction pour remplacer les liens Vocaroo par des audio intégrés
-    function replaceVocarooLinks() {
-        var links = document.querySelectorAll('a[href*="vocaroo.com/"], a[href*="voca.ro/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-            var audioId = link.href.split('/').pop();
-            var iframe = document.createElement('iframe');
-            iframe.width = '300';
-            iframe.height = '60';
-            iframe.src = 'https://vocaroo.com/embed/' + audioId;
-            var div = document.createElement('div');
-            div.appendChild(iframe);
-            link.parentNode.replaceChild(div, link);
-        }
-    }
-
-    // Fonction pour remplacer les liens IssouTV par des vidéos intégrées
-    function replaceIssoutvLinks() {
-        // Sélectionner tous les liens issouTV
-        var links = document.querySelectorAll('a[href*="issoutv.com/videos/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-
-            // Exclure les liens de la classe "signature-msg"
-            if (link.closest('.signature-msg') !== null) {
-                continue;
-            }
-            var videoId = link.href.split('/').pop();
-            var iframeContainer = document.createElement('div');
-            iframeContainer.style.width = '560px';
-            iframeContainer.style.height = '315px';
-            iframeContainer.style.position = 'relative';
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://issoutv.com/storage/videos/' + videoId + '.webm';
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.position = 'absolute';
-            iframeContainer.appendChild(iframe);
-            link.parentNode.replaceChild(iframeContainer, link);
-        }
-    }
-
-    /*FORBIDDEN 403
-    function replace4chanLinks() {
-        // Sélectionner tous les liens issouTV
-        var links = document.querySelectorAll('a[href*="4cdn.org/"]');
-        for (var i = 0; i < links.length; i++) {
-            var link = links[i];
-
-            // Exclure les liens de la classe "signature-msg"
-            if (link.closest('.signature-msg') !== null) {
-                continue;
-            }
-            var board = link.href.split('/')[1];
-            var videoId = link.href.split('/')[2];
-            var iframeContainer = document.createElement('div');
-            iframeContainer.style.width = '560px';
-            iframeContainer.style.height = '315px';
-            iframeContainer.style.position = 'relative';
-            var iframe = document.createElement('iframe');
-            iframe.src = 'https://i.4cdn.org/' + board + videoId;
-            iframe.width = '100%';
-            iframe.height = '100%';
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.position = 'absolute';
-            iframeContainer.appendChild(iframe);
-            link.parentNode.replaceChild(iframeContainer, link);
-        }
-    }
-*/
-    function Start() {
-        // Vérifier s'il y a des liens sur la page avant d'appeler les fonctions correspondantes
-        if(doYoutube === true) {
-            if (document.querySelectorAll('a[href*="youtube.com/watch"], a[href*="youtu.be/"], a[href*="youtube.com/shorts/"]').length > 0) {
-                replaceYoutubeLinks();
-            }
-        }
-
-        if(doStreamable === true) {
-            if (document.querySelectorAll('a[href*="streamable.com/"]').length > 0) {
-                replaceStreamableLinks();
-            }
-        }
-
-        if(doWebmshare === true) {
-            if (document.querySelectorAll('a[href*="webmshare.com/"]').length > 0) {
-                replaceWebmshareLinks();
-            }
-        }
-
-        if(doTwitter === true) {
-            if (document.querySelectorAll('a[href*="twitter.com/"][href*="/status/"], a[href*="x.com/"][href*="/status/"]').length > 0) {
-                replaceTwitterLinks();
-            }
-        }
-        
-        if(doTiktok === true) {
-            if (document.querySelectorAll('a[href*="tiktok.com/"]').length > 0) {
-                replaceTikTokLinks();
-            }
-        }
-
-        if(doVocaroo === true) {
-            if (document.querySelectorAll('a[href*="vocaroo.com/"], a[href*="voca.ro/"]').length > 0) {
-                replaceVocarooLinks();
-            }
-        }
-
-        if(doIssoutv === true) {
-            if (document.querySelectorAll('a[href*="issoutv.com/videos/"]').length > 0) {
-                replaceIssoutvLinks();
-            }
-        }
-        /*FORBIDDEN 403
-        if(do4chan === true) {
-        if (document.querySelectorAll('a[href*="4cdn.org/"]').length > 0) {
-            replace4chanLinks();
-        }
-        }
-*/
-    }
-
-    Start();
-
-    // Écouter les modifications dans le DOM et remplacer les liens après un certain délai d'inactivité
-    //Pour la compatibilité avec TopicLive
-    var timeout = null;
-    var observer = new MutationObserver(function(mutations) {
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            // Ajouter la vérification de la présence de liens Youtube avant d'appeler la fonction correspondante
-            Start();
-        }, 3000);
+    // =========================================================
+    //  OBSERVER (TopicLive / pagination dynamique)
+    //  Debounce de 2 s pour éviter les appels en cascade
+    // =========================================================
+    let debounceTimer = null;
+    const observer = new MutationObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(start, 2000);
     });
-    observer.observe(document, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
+
 })();
