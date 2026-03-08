@@ -2,7 +2,7 @@
 Lecteur de vidéo intégré pour les forums jeuxvideo.com.
 Prend en charge : Youtube, Youtube Short, Streamable, Webmshare, Twitter, Tiktok, Vocaroo et IssouTV.
 
-Ce script a entièrement été fait grâce à ChatGTP.
+Ce script a entièrement été fait grâce à ~~ChatGTP~~ Claude Sonnet 4.6.
 
 # Installation
 ## Installer l'extension Tapermonkey :
